@@ -1,0 +1,38 @@
+name: Terraform CD
+
+on:
+  workflow_call:
+
+permissions:
+  checks: write
+  contents: read
+  id-token: write
+
+env:
+  terraform_directory: ./terraform
+
+jobs:
+  
+  terraform-apply:
+    name: Terraform CD
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@main
+        with:
+          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
+          aws-region: eu-west-1
+          role-session-name: Terraform_CD_GitHub_to_AWS_via_FederatedOIDC
+
+      - name: Terraform init
+        working-directory: ${{ env.terraform_directory }}
+        run: |
+          terraform init -input=false -upgrade=true
+
+      - name: Terraform apply
+        working-directory: ${{ env.terraform_directory }}
+        run: |
+          terraform apply -input=false -auto-approve=true -lock=true -lock-timeout=30m -refresh=true

@@ -1,0 +1,38 @@
+name: Terraform CI
+
+on:
+  workflow_call:
+
+permissions:
+  checks: write
+  contents: read
+  id-token: write
+
+env:
+  terraform_directory: ./terraform
+
+jobs:
+
+  terraform-ci:
+    name: Terraform CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ASSUME_ROLE }}
+          aws-region: eu-west-1
+          role-session-name: Terraform_CI_GitHub_to_AWS_via_FederatedOIDC
+
+      - name: Terraform init
+        working-directory: ${{ env.terraform_directory }}
+        run: |
+          terraform init -input=false -upgrade=true
+
+      - name: Terraform plan
+        working-directory: ${{ env.terraform_directory }}
+        run: |
+          terraform plan -input=false -lock=true -lock-timeout=30m -refresh=true

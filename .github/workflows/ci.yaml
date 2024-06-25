@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  workflow_call:
+  pull_request:
+#     branches: [ master ]
+
+permissions:
+  checks: write
+  contents: read
+  id-token: write
+  security-events: write
+
+jobs:
+
+  terraform-ci:
+    name: Terraform CI
+    secrets: inherit
+    uses: ./.github/workflows/terraform-ci.yaml
