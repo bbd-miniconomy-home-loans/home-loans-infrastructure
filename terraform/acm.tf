@@ -1,6 +1,7 @@
 resource "aws_acm_certificate" "https_frontend_cert" {
   domain_name       = local.domain_name
   validation_method = "DNS"
+  provider = aws.us-east-1
   lifecycle {
     create_before_destroy = true
   }
