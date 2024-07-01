@@ -1,4 +1,5 @@
 resource "aws_s3_bucket" "beanstalk_deployment_bucket" {
+#   Maybe not fe ;)
   bucket        = "home-loans-service-fe-deployment"
   force_destroy = true
 }

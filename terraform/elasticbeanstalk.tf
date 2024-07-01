@@ -19,15 +19,6 @@ resource "aws_iam_policy" "elasticbeanstalk_sm_access_policy" {
   })
 }
 
-/*resource "aws_acm_certificate" "backend_beanstalk" {
-  domain_name       = "api.${local.domain_name}"
-  validation_method = "DNS"
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}*/
-
 resource "aws_iam_policy" "elasticbeanstalk_ssm_access_policy" {
   name = "home-loans-service-ssm-read-only-policy"
 
@@ -64,10 +55,9 @@ resource "aws_iam_role" "beanstalk_ec2" {
       ]
     }
   )
-  description         = "Allows EC2 instances to call AWS services on your behalf."
+  description           = "Allows EC2 instances to call AWS services on your behalf."
   force_detach_policies = false
-  #     managed_policy_arns   = ["arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker", "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier", "arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier"]
-  managed_policy_arns = [
+  managed_policy_arns   = [
     aws_iam_policy.elasticbeanstalk_sm_access_policy.arn,
     aws_iam_policy.elasticbeanstalk_ssm_access_policy.arn,
     "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker",
@@ -103,7 +93,7 @@ resource "aws_elastic_beanstalk_environment" "beanstalk_env" {
   depends_on = [aws_elastic_beanstalk_application_version.default]
 
   lifecycle {
-    ignore_changes = all
+    ignore_changes =
   }*/
 
   setting {
@@ -252,6 +242,52 @@ resource "aws_elastic_beanstalk_environment" "beanstalk_env" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "DB_URL"
-    value     = "jdbc:postgresql://${module.rds.db_instance_address}:5432/${module.rds.db_instance_name}"
+    value     = "postgresql://${module.rds.db_instance_address}:5432/${module.rds.db_instance_name}"
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "GRAFANA_USER"
+    value     = jsondecode(data.aws_secretsmanager_secret_version.secret_credentials.secret_string)["GRAFANA_USER"]
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "GRAFANA_TOKEN"
+    value     = jsondecode(data.aws_secretsmanager_secret_version.secret_credentials.secret_string)["GRAFANA_TOKEN"]
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "GRAFANA_URL"
+    value     = jsondecode(data.aws_secretsmanager_secret_version.secret_credentials.secret_string)["GRAFANA_URL"]
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "HOME_LOAN_MESSAGE_QUEUE_URL"
+    value     = aws_sqs_queue.home_loan_queue.url
+  }
+}
+
+data "aws_lb_listener" "http_listener" {
+  load_balancer_arn = aws_elastic_beanstalk_environment.beanstalk_env.load_balancers[0]
+  port              = 80
+}
+
+resource "aws_lb_listener_rule" "redirect_http_to_https" {
+  listener_arn = data.aws_lb_listener.http_listener.arn
+  priority     = 1
+
+  action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
   }
 }
