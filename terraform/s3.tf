@@ -1,6 +1,11 @@
+/*resource "aws_s3_bucket" "mtls" {
+  bucket        = "miniconomy-trust-store-bucket"
+  force_destroy = true
+}
+*/
+
 resource "aws_s3_bucket" "beanstalk_deployment_bucket" {
-#   Maybe not fe ;)
-  bucket        = "home-loans-service-fe-deployment"
+  bucket        = "home-loans-service-deployment"
   force_destroy = true
 }
 
